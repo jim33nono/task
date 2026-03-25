@@ -44,14 +44,14 @@ public class TaskProcessor {
         try {
 
             boolean is_send = taskProducer.sendTask(task.getTaskId(), task.getPayloadAsMap());
-
+            // TODO To write some business code in the future
             if (is_send) {
                 log.info("Task {} processed and sent to MQ successfully.", task.getTaskId());
                 updateTaskStatus(task.getTaskId(), TaskStatus.PROCESSING, TaskStatus.TRIGGERED);
-            } else {
+            } else {   // TODO Stay PROCESSING status while something wrong
                 log.warn("Task {} was sent to MQ, but its status was not PROCESSING. Manual check may be needed.  It will be retried by the compensation job.", task.getTaskId());
             }
-        } catch (Exception e) {
+        } catch (Exception e) { // TODO Stay PROCESSING status while something wrong
             log.error("Failed to send task {} to MQ. It will be retried by the compensation job.", task.getTaskId(), e);
         }
     }
