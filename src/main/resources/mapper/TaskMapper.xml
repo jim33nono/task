@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.TaskMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.model.entity.Task">
+        <id property="taskId" column="task_id"/>
+        <result property="status" column="status"/>
+        <result property="executeAt" column="execute_at"/>
+        <result property="payload" column="payload"/>
+        <result property="retryCount" column="retry_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.example.demo.model.entity.Task">
+        INSERT INTO tasks (task_id, status, execute_at, payload, created_at, updated_at)
+        VALUES (#{taskId}, #{status}, #{executeAt}, #{payload}, NOW(), NOW())
+    </insert>
+
+    <select id="findByTaskId" resultMap="BaseResultMap">
+        SELECT task_id, status, execute_at, payload, retry_count, created_at, updated_at
+        FROM tasks
+        WHERE task_id = #{taskId}
+    </select>
+    
+    <update id="update" parameterType="com.example.demo.model.entity.Task">
+        UPDATE tasks
+        <set>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="executeAt != null">
+                execute_at = #{executeAt},
+            </if>
+            <if test="payload != null">
+                payload = #{payload},
+            </if>
+            <if test="retryCount > 0">
+                retry_count = #{retryCount},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE task_id = #{taskId}
+</update>
+
+    <select id="findByStatusWithPagination" resultMap="BaseResultMap">
+        SELECT * FROM tasks
+        WHERE status = #{status}
+        ORDER BY execute_at ASC
+            LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT count(*) FROM tasks WHERE status = #{status}
+    </select>
+
+    <select id="findStuckProcessingTasks" resultMap="BaseResultMap">
+        SELECT * FROM tasks
+        WHERE status = 'PROCESSING'
+        AND updated_at &lt; #{timeout}
+        ORDER BY updated_at ASC
+    </select>
+
+</mapper>
