@@ -99,7 +99,7 @@ curl --location 'localhost:8080/tasks' \
 *   **Description**: Retrieves the details of a specific task.
 
 ```bash
-curl --location 'localhost:8080/tasks/abc-127'
+curl --location 'localhost:8080/tasks/bb-113888'
 ```
 
 ### 3. Cancel a Scheduled Task
@@ -137,3 +137,28 @@ For the core logic regarding task scheduling and retries, refer to the following
 *   **File**: `src/main/java/com/example/demo/scheduler/TaskExtractScheduler.java`
 *   **Method**: `retryStuckTasks()`
 *   **Description**: This method periodically handles tasks that have been stuck in the `PROCESSING` state for too long and retries them.
+
+---
+
+## 🤔 Alternative Design: Using RocketMQ's Native Delayed Queues
+
+The current implementation uses a database-polling scheduler (`TaskExtractScheduler`) to find due tasks and send them to an immediate-delivery RocketMQ queue. This approach offers great flexibility for managing and cancelling tasks directly in the database.
+
+However, a more common and efficient approach for delayed execution is to use RocketMQ's native delayed queue feature.
+
+### How It Works
+
+1.  **On Task Creation**: Instead of just saving the task to the database, the service would also send a **delayed message** directly to RocketMQ. The delay level would be chosen to match the desired `executeAt` time as closely as possible.
+2.  **Waiting in Broker**: The message resides within the RocketMQ broker until its delay time expires. This offloads the entire waiting and scheduling responsibility from our application to the message queue system.
+3.  **Automatic Delivery**: Once the delay time is met, the broker automatically delivers the message to the consumer for immediate processing.
+
+### Pros & Cons
+
+*   **Pros**:
+    *   **Simplified Architecture**: Removes the need for a custom polling scheduler (`TaskExtractScheduler`), reducing application complexity and potential points of failure.
+    *   **Higher Efficiency & Scalability**: Eliminates the database polling load. This approach is more performant and scales better as the number of scheduled tasks grows.
+    *   **Increased Reliability**: Relies on RocketMQ's battle-tested, highly available infrastructure for scheduling, which is generally more robust than a self-managed application scheduler.
+
+*   **Cons**:
+    *   **Fixed Delay Levels**: Open-source RocketMQ supports a set of fixed delay levels (e.g., 1s, 5s, 10m, 2h). It does not support arbitrary delay times, so you must choose the level closest to your requirement.
+    *   **Cancellation is Difficult**: Once a delayed message is sent, it is very difficult to cancel it before it's delivered. The common workaround is for the consumer to check the task's status in the database upon receiving the message and discard it if it has been marked as `CANCELLED`.

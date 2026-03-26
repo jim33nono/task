@@ -44,7 +44,7 @@
 </update>
 
     <select id="findByStatusWithPagination" resultMap="BaseResultMap">
-        SELECT task_id, status, execute_at, payload, retryCount FROM tasks
+        SELECT task_id, status, execute_at, payload, retry_count FROM tasks
         WHERE status = #{status}
         ORDER BY execute_at ASC
             LIMIT #{limit} OFFSET #{offset}
@@ -55,7 +55,7 @@
     </select>
 
     <select id="findStuckProcessingTasks" resultMap="BaseResultMap">
-        SELECT task_id, status, execute_at, payload, retryCount FROM tasks
+        SELECT task_id, status, execute_at, payload, retry_count FROM tasks
         WHERE status = 'PROCESSING'
         AND updated_at &lt; #{timeout}
         ORDER BY updated_at ASC
